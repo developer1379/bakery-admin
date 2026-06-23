@@ -3,11 +3,81 @@
 // Global State
 var productsData = [];
 var ordersData = [];
+var inventoryData = [];
 var charts = {};
 
 function handleLogout() {
     sessionStorage.removeItem("bakery_logged_in");
     window.location.href = "logout.php";
+}
+
+// Load data from localStorage or fallback to defaults
+function loadLocalState() {
+    if (!localStorage.getItem('productsData')) {
+        const defaultProducts = [
+            { id: 1, name: "Butter Croissant", category: "Pastries", price: 150.00, desc: "Crispy, flaky french style layered puff pastry made with 100% Normandy butter.", status: "In Stock", stock: 80, limit: 120, img: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&auto=format&fit=crop&q=80" },
+            { id: 2, name: "Artisan Sourdough", category: "Bread", price: 320.00, desc: "Wild yeast slow fermented boule with a robust blistered crust and open airy crumb.", status: "Low Stock", stock: 5, limit: 30, img: "https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=400&auto=format&fit=crop&q=80" },
+            { id: 3, name: "Chocolate Truffle Gateau", category: "Cakes", price: 1200.00, desc: "Decadent 3-layer Belgian dark chocolate cake iced with creamy chocolate ganache.", status: "In Stock", stock: 8, limit: 10, img: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&auto=format&fit=crop&q=80" },
+            { id: 4, name: "Gourmet Macarons", category: "Pastries", price: 650.00, desc: "Assorted box of 12 french almond shells filled with custom buttercreams and curds.", status: "Out of Stock", stock: 0, limit: 50, img: "https://images.unsplash.com/photo-1569864358642-9d1684040f43?w=400&auto=format&fit=crop&q=80" }
+        ];
+        localStorage.setItem('productsData', JSON.stringify(defaultProducts));
+    }
+
+    if (!localStorage.getItem('ordersData')) {
+        const defaultOrders = [
+            { id: "ORD-4920", customer: "Henri Matisse", email: "henri@fauvism-art.fr", items: [{ name: 'Chocolate Gateau (8")', qty: 1, price: 1200.00 }], priority: "ASAP", type: "Delivery", status: "pending", time: "15m ago", total: 1200.00 },
+            { id: "ORD-4921", customer: "Charlotte Corday", email: "charlotte@normandy-mail.fr", items: [{ name: 'Artisan Sourdough', qty: 2, price: 320.00 }, { name: 'Butter Croissant', qty: 3, price: 150.00 }], priority: "Oven A", type: "Dine-in", status: "baking", time: "5m ago", total: 1090.00 },
+            { id: "ORD-4922", customer: "Albert Camus", email: "albert@existential.com", items: [{ name: 'Lemon Tart', qty: 4, price: 180.00 }, { name: 'Espresso', qty: 1, price: 140.00 }], priority: "Standard", type: "Takeaway", status: "pending", time: "22m ago", total: 860.00 },
+            { id: "ORD-4919", customer: "Simone de Beauvoir", email: "simone@existential.com", items: [{ name: 'Mixed Macarons', qty: 1, price: 650.00 }], priority: "Driver Dave", type: "Delivery", status: "dispatched", time: "1h ago", total: 650.00 },
+            { id: "ORD-4918", customer: "Jean-Paul Sartre", email: "jeanpaul@existential.com", items: [{ name: 'Baguette', qty: 2, price: 90.00 }, { name: 'Salted Caramel Spread', qty: 1, price: 250.00 }], priority: "Standard", type: "Delivery", status: "delivered", time: "2h ago", total: 430.00 }
+        ];
+        localStorage.setItem('ordersData', JSON.stringify(defaultOrders));
+    }
+
+    productsData = JSON.parse(localStorage.getItem('productsData'));
+    ordersData = JSON.parse(localStorage.getItem('ordersData'));
+
+    if (!localStorage.getItem('inventoryData')) {
+        const defaultInventory = [
+            { name: "Unbleached Flour", category: "Dry Goods", stock: 120, max_stock: 500, limit_threshold: 150, unit_cost: 45.00, supplier: "Heritage Grains Ltd." },
+            { name: "Normandy Butter", category: "Dairy", stock: 80, max_stock: 200, limit_threshold: 50, unit_cost: 380.00, supplier: "Normandy Dairy Coop" },
+            { name: "Fine Granulated Sugar", category: "Dry Goods", stock: 90, max_stock: 300, limit_threshold: 100, unit_cost: 35.00, supplier: "Sweetener Corp" },
+            { name: "Belgian Dark Chocolate", category: "Chocolates", stock: 15, max_stock: 100, limit_threshold: 25, unit_cost: 750.00, supplier: "Callebaut Importers" },
+            { name: "Active Dry Yeast", category: "Leaveners", stock: 8, max_stock: 25, limit_threshold: 5, unit_cost: 180.00, supplier: "Bio-Rise Labs" }
+        ];
+        localStorage.setItem('inventoryData', JSON.stringify(defaultInventory));
+    }
+    inventoryData = JSON.parse(localStorage.getItem('inventoryData'));
+}
+
+function updateDashboardStats() {
+    const statSales = document.getElementById("stat-sales");
+    const statBaked = document.getElementById("stat-baked");
+    const statActive = document.getElementById("stat-active");
+    const statDeliveries = document.getElementById("stat-deliveries");
+
+    if (!statSales) return;
+
+    const todaySales = ordersData
+        .filter(o => o.status === 'delivered')
+        .reduce((sum, o) => sum + parseFloat(o.total || 0), 0);
+    
+    let totalBakedItems = 0;
+    ordersData.forEach(o => {
+        if (['delivered', 'dispatched', 'baking'].includes(o.status)) {
+            o.items.forEach(item => {
+                totalBakedItems += parseInt(item.qty || 0);
+            });
+        }
+    });
+
+    const activeOrdersCount = ordersData.filter(o => o.status !== 'delivered').length;
+    const deliveriesCount = ordersData.filter(o => o.type === 'Delivery' && o.status === 'dispatched').length;
+
+    statSales.textContent = `₹${todaySales.toFixed(2)}`;
+    statBaked.textContent = `${totalBakedItems} items`;
+    statActive.textContent = `${activeOrdersCount} Pending`;
+    statDeliveries.textContent = `${deliveriesCount} Dispatched`;
 }
 
 // DOM Ready
@@ -17,46 +87,28 @@ document.addEventListener("DOMContentLoaded", () => {
     initSearchAndFilters();
     initRippleEffect();
     
-    // Fetch dashboard/catalog data dynamically
-    Promise.all([
-        fetch('api/get_products.php').then(r => {
-            if (!r.ok) throw new Error('Unauthorized or server error');
-            return r.json();
-        }),
-        fetch('api/get_orders.php').then(r => {
-            if (!r.ok) throw new Error('Unauthorized or server error');
-            return r.json();
-        })
-    ])
-    .then(([products, orders]) => {
-        productsData = products;
-        ordersData = orders;
-        
-        // Render dynamic page sections
-        renderProductsGrid();
-        renderOrdersBoard();
-        renderDashboardRecentOrders();
-        renderNewOrderProducts();
-        renderOvensSchedule();
-        initCharts();
-        
-        // Hide preloader once data is successfully loaded and rendered
-        const preloader = document.getElementById('bakery-preloader');
-        if (preloader) {
-            preloader.classList.add('opacity-0', 'pointer-events-none');
-            setTimeout(() => {
-                preloader.remove();
-            }, 600);
-        }
-    })
-    .catch(err => {
-        console.error('Failed to load dashboard data:', err);
-        // Fallback hide preloader on failure so user isn't stuck
-        const preloader = document.getElementById('bakery-preloader');
-        if (preloader) {
-            preloader.classList.add('opacity-0', 'pointer-events-none');
-        }
-    });
+    // Load local storage states
+    loadLocalState();
+    
+    // Render dynamic page sections
+    renderProductsGrid();
+    renderOrdersBoard();
+    renderDashboardRecentOrders();
+    renderNewOrderProducts();
+    renderOvensSchedule();
+    updateDashboardStats();
+    renderInventory();
+    updateSidebarBadges();
+    initCharts();
+    
+    // Hide preloader once data is successfully loaded and rendered
+    const preloader = document.getElementById('bakery-preloader');
+    if (preloader) {
+        preloader.classList.add('opacity-0', 'pointer-events-none');
+        setTimeout(() => {
+            preloader.remove();
+        }, 600);
+    }
 });
 
 
@@ -454,29 +506,28 @@ function saveProduct(event) {
     const desc = document.getElementById("p-desc").value;
     const stock = parseInt(document.getElementById("p-stock").value);
     const status = document.getElementById("p-status").value;
-    const img = document.getElementById("p-img").value;
+    const img = document.getElementById("p-img").value || 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&auto=format&fit=crop&q=80';
+    const limit_val = stock > 0 ? Math.floor(stock * 1.5) : 30;
 
-    fetch('api/add_product.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, category, price, desc, stock, status, img })
-    })
-    .then(r => r.json())
-    .then(res => {
-        if (res.success) {
-            productsData.unshift(res.product);
-            renderProductsGrid();
-            closeAddProductModal();
-            showToast(`New item "${name}" added successfully!`);
-            event.target.reset();
-        } else {
-            alert('Failed to add product: ' + (res.error || 'Unknown error'));
-        }
-    })
-    .catch(e => {
-        console.error(e);
-        alert('An error occurred while adding the product.');
-    });
+    const newProduct = {
+        id: productsData.length ? Math.max(...productsData.map(p => p.id)) + 1 : 1,
+        name,
+        category,
+        price,
+        desc,
+        stock,
+        status,
+        img,
+        limit: limit_val
+    };
+
+    productsData.unshift(newProduct);
+    localStorage.setItem('productsData', JSON.stringify(productsData));
+    renderProductsGrid();
+    renderNewOrderProducts(); // Refresh new order modal checkboxes
+    closeAddProductModal();
+    showToast(`New item "${name}" added successfully!`);
+    event.target.reset();
 }
 
 
@@ -628,28 +679,18 @@ function updateOrderStatus(newStatus) {
     const order = ordersData.find(o => o.id === currentSelectedOrderId);
     if (!order) return;
 
-    fetch('api/update_order_status.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: currentSelectedOrderId, status: newStatus })
-    })
-    .then(r => r.json())
-    .then(res => {
-        if (res.success) {
-            order.status = newStatus;
-            if (newStatus === 'baking') order.priority = 'Oven A';
-            if (newStatus === 'delivered') order.priority = 'Paid';
-            renderOrdersBoard();
-            closeOrderModal();
-            showToast(`Order ${order.id} status updated to: ${newStatus}`);
-        } else {
-            alert('Failed to update order: ' + (res.error || 'Unknown error'));
-        }
-    })
-    .catch(e => {
-        console.error(e);
-        alert('An error occurred while updating the order status.');
-    });
+    order.status = newStatus;
+    if (newStatus === 'baking') order.priority = 'Oven A';
+    if (newStatus === 'delivered') order.priority = 'Paid';
+
+    localStorage.setItem('ordersData', JSON.stringify(ordersData));
+    renderOrdersBoard();
+    renderDashboardRecentOrders();
+    renderOvensSchedule();
+    updateDashboardStats();
+    updateSidebarBadges();
+    closeOrderModal();
+    showToast(`Order ${order.id} status updated to: ${newStatus}`);
 }
 
 // Add Order Modal Toggles
@@ -693,27 +734,29 @@ function saveNewOrder(event) {
         return;
     }
 
-    fetch('api/add_order.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customer, priority, type, items: checkedItems })
-    })
-    .then(r => r.json())
-    .then(res => {
-        if (res.success) {
-            ordersData.unshift(res.order);
-            renderOrdersBoard();
-            closeNewOrderModal();
-            showToast(`Logged new order ${res.order.id} successfully!`);
-            event.target.reset();
-        } else {
-            alert('Failed to create order: ' + (res.error || 'Unknown error'));
-        }
-    })
-    .catch(e => {
-        console.error(e);
-        alert('An error occurred while creating the order.');
-    });
+    const orderId = "ORD-" + Math.floor(1000 + Math.random() * 9000);
+    const newOrder = {
+        id: orderId,
+        customer,
+        email: customer.toLowerCase().replace(/\s+/g, '') + "@example.com",
+        items: checkedItems,
+        priority,
+        type,
+        status: "pending",
+        time: "Just now",
+        total: checkedItems.reduce((acc, it) => acc + (it.price * it.qty), 0)
+    };
+
+    ordersData.unshift(newOrder);
+    localStorage.setItem('ordersData', JSON.stringify(ordersData));
+    renderOrdersBoard();
+    renderDashboardRecentOrders();
+    renderOvensSchedule();
+    updateDashboardStats();
+    updateSidebarBadges();
+    closeNewOrderModal();
+    showToast(`Logged new order ${orderId} successfully!`);
+    event.target.reset();
 }
 
 
@@ -854,4 +897,109 @@ function renderOvensSchedule() {
         `;
         tableBody.appendChild(tr);
     });
+}
+
+function renderInventory() {
+    const tableBody = document.getElementById("inventory-tbody");
+    const warningContainer = document.getElementById("inventory-warning-container");
+    if (!tableBody) return;
+
+    tableBody.innerHTML = "";
+    let lowStockCount = 0;
+
+    inventoryData.forEach(item => {
+        const isLow = parseInt(item.stock) <= parseInt(item.limit_threshold);
+        const percent = item.max_stock > 0 ? Math.round((parseInt(item.stock) / parseInt(item.max_stock)) * 100) : 0;
+        
+        let statusColor = 'bg-emerald-500';
+        let textColor = 'text-emerald-600';
+        if (isLow) {
+            statusColor = 'bg-rose-500';
+            textColor = 'text-rose-600';
+            lowStockCount++;
+        } else if (percent <= 25) {
+            statusColor = 'bg-amber-500';
+            textColor = 'text-amber-600';
+        }
+
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-bakery-50/50 transition-colors";
+        tr.innerHTML = `
+            <td class="py-3 px-4">
+                <div class="flex items-center gap-2">
+                    <span class="h-2 w-2 rounded-full ${statusColor}"></span>
+                    <span class="font-bold text-espresso-950">${item.name}</span>
+                </div>
+            </td>
+            <td class="py-3 px-4">${item.category}</td>
+            <td class="py-3 px-4 ${textColor} font-bold">${item.stock} kg / ${item.max_stock} kg</td>
+            <td class="py-3 px-4">${item.limit_threshold} kg</td>
+            <td class="py-3 px-4">₹${parseFloat(item.unit_cost).toFixed(2)} / kg</td>
+            <td class="py-3 px-4">${item.supplier}</td>
+            <td class="py-3 px-4 text-right">
+                <button onclick="quickOrderInventory('${item.name}')" class="text-xs font-bold text-bakery-600 hover:text-bakery-800">Quick Order</button>
+            </td>
+        `;
+        tableBody.appendChild(tr);
+    });
+
+    if (warningContainer) {
+        if (lowStockCount > 0) {
+            warningContainer.innerHTML = `
+                <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="h-10 w-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center">
+                            <span class="material-icons-round animate-bounce">warning</span>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-sm text-espresso-950">Critical Stock Warning!</h4>
+                            <p class="text-xs text-espresso-600 mt-0.5">${lowStockCount} key ingredient${lowStockCount > 1 ? 's are' : ' is'} below safety limit thresholds. Replenish immediately to avoid baking interruption.</p>
+                        </div>
+                    </div>
+                    <button class="bg-rose-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-rose-700 transition-all">
+                        Order Refills
+                    </button>
+                </div>
+            `;
+            warningContainer.classList.remove("hidden");
+        } else {
+            warningContainer.innerHTML = "";
+            warningContainer.classList.add("hidden");
+        }
+    }
+}
+
+function quickOrderInventory(name) {
+    const item = inventoryData.find(i => i.name === name);
+    if (item) {
+        item.stock = Math.min(item.max_stock, item.stock + 50);
+        localStorage.setItem('inventoryData', JSON.stringify(inventoryData));
+        renderInventory();
+        updateSidebarBadges();
+        showToast(`Ordered 50kg refill of ${name}!`);
+    }
+}
+
+function updateSidebarBadges() {
+    const ordersBadge = document.getElementById("sidebar-orders-badge");
+    const inventoryBadge = document.getElementById("sidebar-inventory-badge");
+
+    if (ordersBadge) {
+        const activeOrdersCount = ordersData.filter(o => o.status !== 'delivered').length;
+        if (activeOrdersCount > 0) {
+            ordersBadge.textContent = activeOrdersCount;
+            ordersBadge.classList.remove("hidden");
+        } else {
+            ordersBadge.classList.add("hidden");
+        }
+    }
+
+    if (inventoryBadge) {
+        const lowStockCount = inventoryData.filter(item => parseInt(item.stock) <= parseInt(item.limit_threshold)).length;
+        if (lowStockCount > 0) {
+            inventoryBadge.classList.remove("hidden");
+        } else {
+            inventoryBadge.classList.add("hidden");
+        }
+    }
 }

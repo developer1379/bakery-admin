@@ -1,30 +1,5 @@
 <?php
 require_once 'auth_check.php';
-
-// Stats computations
-$salesStmt = $pdo->query("SELECT SUM(total) as total_sales FROM orders WHERE status = 'delivered'");
-$salesData = $salesStmt->fetch();
-$todaySales = $salesData['total_sales'] ?? 0.00;
-
-$bakedStmt = $pdo->query("SELECT items_json FROM orders WHERE status IN ('delivered', 'dispatched', 'baking')");
-$totalBakedItems = 0;
-while ($row = $bakedStmt->fetch()) {
-    $items = json_decode($row['items_json'], true);
-    if (is_array($items)) {
-        foreach ($items as $item) {
-            $totalBakedItems += intval($item['qty']);
-        }
-    }
-}
-
-
-$activeStmt = $pdo->query("SELECT COUNT(*) as active_count FROM orders WHERE status != 'delivered'");
-$activeData = $activeStmt->fetch();
-$activeOrdersCount = $activeData['active_count'] ?? 0;
-
-$delivStmt = $pdo->query("SELECT COUNT(*) as deliv_count FROM orders WHERE type = 'Delivery' AND status = 'dispatched'");
-$delivData = $delivStmt->fetch();
-$deliveriesCount = $delivData['deliv_count'] ?? 0;
 ?>
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-[#FAF7F2]">
@@ -210,7 +185,7 @@ $deliveriesCount = $delivData['deliv_count'] ?? 0;
                         </div>
                         <div>
                             <span class="text-xs font-semibold text-espresso-500 uppercase tracking-wider block">Today's Sales</span>
-                            <span class="text-2xl font-bold text-espresso-950 mt-1 block">₹<?php echo number_format($todaySales, 2); ?></span>
+                            <span id="stat-sales" class="text-2xl font-bold text-espresso-950 mt-1 block">₹0.00</span>
                             <span class="text-xs font-bold text-emerald-600 flex items-center mt-1">
                                 <span class="material-icons-round text-sm">trending_up</span> +14.2% <span class="text-espresso-400 font-normal ml-1">vs yesterday</span>
                             </span>
@@ -224,7 +199,7 @@ $deliveriesCount = $delivData['deliv_count'] ?? 0;
                         </div>
                         <div>
                             <span class="text-xs font-semibold text-espresso-500 uppercase tracking-wider block">Orders Baked</span>
-                            <span class="text-2xl font-bold text-espresso-950 mt-1 block"><?php echo $totalBakedItems; ?> items</span>
+                            <span id="stat-baked" class="text-2xl font-bold text-espresso-950 mt-1 block">0 items</span>
                             <span class="text-xs font-bold text-emerald-600 flex items-center mt-1">
                                 <span class="material-icons-round text-sm">trending_up</span> +8.5% <span class="text-espresso-400 font-normal ml-1">vs last week</span>
                             </span>
@@ -238,7 +213,7 @@ $deliveriesCount = $delivData['deliv_count'] ?? 0;
                         </div>
                         <div>
                             <span class="text-xs font-semibold text-espresso-500 uppercase tracking-wider block">Active Orders</span>
-                            <span class="text-2xl font-bold text-espresso-950 mt-1 block"><?php echo $activeOrdersCount; ?> Pending</span>
+                            <span id="stat-active" class="text-2xl font-bold text-espresso-950 mt-1 block">0 Pending</span>
                             <span class="text-xs font-bold text-rose-500 flex items-center mt-1">
                                 <span class="material-icons-round text-sm animate-pulse">hourglass_empty</span> 4 in Ovens <span class="text-espresso-400 font-normal ml-1">right now</span>
                             </span>
@@ -252,7 +227,7 @@ $deliveriesCount = $delivData['deliv_count'] ?? 0;
                         </div>
                         <div>
                             <span class="text-xs font-semibold text-espresso-500 uppercase tracking-wider block">Deliveries</span>
-                            <span class="text-2xl font-bold text-espresso-950 mt-1 block"><?php echo $deliveriesCount; ?> Dispatched</span>
+                            <span id="stat-deliveries" class="text-2xl font-bold text-espresso-950 mt-1 block">0 Dispatched</span>
                             <span class="text-xs font-bold text-indigo-600 flex items-center mt-1">
                                 <span class="material-icons-round text-sm">navigation</span> 2 near target <span class="text-espresso-400 font-normal ml-1">ETA &lt;5m</span>
                             </span>

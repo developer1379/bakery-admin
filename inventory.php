@@ -1,17 +1,5 @@
 <?php
 require_once 'auth_check.php';
-
-// Fetch inventory items
-$invStmt = $pdo->query("SELECT name, category, stock, max_stock, limit_threshold, unit_cost, supplier FROM inventory ORDER BY name ASC");
-$inventory = $invStmt->fetchAll();
-
-// Count low stock items (where stock <= limit_threshold)
-$lowStockCount = 0;
-foreach ($inventory as $item) {
-    if ($item['stock'] <= $item['limit_threshold']) {
-        $lowStockCount++;
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-[#FAF7F2]">
@@ -150,23 +138,7 @@ foreach ($inventory as $item) {
                     </button>
                 </div>
 
-                <?php if ($lowStockCount > 0): ?>
-                <!-- Stock warning banner -->
-                <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div class="flex items-center gap-3">
-                        <div class="h-10 w-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center">
-                            <span class="material-icons-round animate-bounce">warning</span>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-sm text-espresso-950">Critical Stock Warning!</h4>
-                            <p class="text-xs text-espresso-600 mt-0.5"><?php echo $lowStockCount; ?> key ingredient<?php echo $lowStockCount > 1 ? 's are' : ' is'; ?> below safety limit thresholds. Replenish immediately to avoid baking interruption.</p>
-                        </div>
-                    </div>
-                    <button class="bg-rose-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-rose-700 transition-all">
-                        Order Refills
-                    </button>
-                </div>
-                <?php endif; ?>
+                <div id="inventory-warning-container" class="hidden"></div>
 
                 <!-- Ingredient Table -->
                 <div class="card bg-white rounded-2xl border border-[#EAE3D5] overflow-hidden">
@@ -183,37 +155,7 @@ foreach ($inventory as $item) {
                                     <th class="py-3 px-4 text-right">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-[#F5EDE0] text-sm text-espresso-800 font-medium">
-                                <?php foreach ($inventory as $item): 
-                                    $isLow = $item['stock'] <= $item['limit_threshold'];
-                                    $percent = $item['max_stock'] > 0 ? round(($item['stock'] / $item['max_stock']) * 100) : 0;
-                                    $statusColor = 'bg-emerald-500';
-                                    $textColor = 'text-emerald-600';
-                                    if ($isLow) {
-                                        $statusColor = 'bg-rose-500';
-                                        $textColor = 'text-rose-600';
-                                    } elseif ($percent <= 25) {
-                                        $statusColor = 'bg-amber-500';
-                                        $textColor = 'text-amber-600';
-                                    }
-                                ?>
-                                <tr class="hover:bg-bakery-50/50 transition-colors">
-                                    <td class="py-3 px-4">
-                                        <div class="flex items-center gap-2">
-                                            <span class="h-2 w-2 rounded-full <?php echo $statusColor; ?>"></span>
-                                            <span class="font-bold text-espresso-950"><?php echo htmlspecialchars($item['name']); ?></span>
-                                        </div>
-                                    </td>
-                                    <td class="py-3 px-4"><?php echo htmlspecialchars($item['category']); ?></td>
-                                    <td class="py-3 px-4 <?php echo $textColor; ?> font-bold"><?php echo htmlspecialchars($item['stock']); ?> kg / <?php echo htmlspecialchars($item['max_stock']); ?> kg</td>
-                                    <td class="py-3 px-4"><?php echo htmlspecialchars($item['limit_threshold']); ?> kg</td>
-                                    <td class="py-3 px-4">₹<?php echo number_format($item['unit_cost'], 2); ?> / kg</td>
-                                    <td class="py-3 px-4"><?php echo htmlspecialchars($item['supplier']); ?></td>
-                                    <td class="py-3 px-4 text-right">
-                                        <button class="text-xs font-bold text-bakery-600 hover:text-bakery-800">Quick Order</button>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
+                            <tbody id="inventory-tbody" class="divide-y divide-[#F5EDE0] text-sm text-espresso-800 font-medium">
                             </tbody>
                         </table>
                     </div>

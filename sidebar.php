@@ -1,16 +1,5 @@
 <?php
 $currentPage = basename($_SERVER['PHP_SELF']);
-require_once 'config.php';
-
-// Get active orders count
-$badgeStmt = $pdo->query("SELECT COUNT(*) as active_count FROM orders WHERE status != 'delivered'");
-$badgeData = $badgeStmt->fetch();
-$sidebarActiveOrders = $badgeData['active_count'] ?? 0;
-
-// Get low stock count
-$lowStockStmt = $pdo->query("SELECT COUNT(*) as low_count FROM inventory WHERE stock <= limit_threshold");
-$lowStockData = $lowStockStmt->fetch();
-$sidebarLowStockCount = $lowStockData['low_count'] ?? 0;
 ?>
 <!-- BAKERY PRELOADER -->
 <div id="bakery-preloader" class="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#FAF7F2] transition-opacity duration-500">
@@ -88,9 +77,7 @@ $sidebarLowStockCount = $lowStockData['low_count'] ?? 0;
                     <a href="orders.php" class="nav-item <?php echo ($currentPage == 'orders.php') ? 'active' : ''; ?> flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200">
                         <span class="material-icons-round text-xl">receipt_long</span>
                         <span>Live Orders</span>
-                        <?php if ($sidebarActiveOrders > 0): ?>
-                        <span id="sidebar-orders-badge" class="ml-auto bg-bakery-500 text-espresso-950 text-xs px-2 py-0.5 rounded-full font-bold"><?php echo $sidebarActiveOrders; ?></span>
-                        <?php endif; ?>
+                        <span id="sidebar-orders-badge" class="ml-auto bg-bakery-500 text-espresso-950 text-xs px-2 py-0.5 rounded-full font-bold hidden">0</span>
                     </a>
                 </li>
                 <li>
@@ -124,9 +111,7 @@ $sidebarLowStockCount = $lowStockData['low_count'] ?? 0;
                     <a href="inventory.php" class="nav-item <?php echo ($currentPage == 'inventory.php') ? 'active' : ''; ?> flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200">
                         <span class="material-icons-round text-xl">inventory_2</span>
                         <span>Inventory</span>
-                        <?php if ($sidebarLowStockCount > 0): ?>
-                        <span class="ml-auto bg-rose-500/20 text-rose-300 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Stock Warning</span>
-                        <?php endif; ?>
+                        <span id="sidebar-inventory-badge" class="ml-auto bg-rose-500/20 text-rose-300 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider hidden">Stock Warning</span>
                     </a>
                 </li>
             </ul>
