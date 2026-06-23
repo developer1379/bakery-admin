@@ -293,38 +293,47 @@ foreach ($dbOrders as $o) {
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-[#FAF6F0] text-sm text-espresso-800 font-medium">
+                                <?php foreach ($orders as $idx => $o): 
+                                    $itemNames = [];
+                                    $totalQty = 0;
+                                    foreach ($o['items'] as $item) {
+                                        $itemNames[] = $item['name'];
+                                        $totalQty += $item['qty'];
+                                    }
+                                    $itemsStr = implode(', ', $itemNames);
+                                    
+                                    $statusLabel = 'Queued';
+                                    $statusClass = 'bg-rose-100 text-rose-700 border-rose-200';
+                                    if ($o['status'] === 'delivered') {
+                                        $statusLabel = 'Completed';
+                                        $statusClass = 'bg-emerald-100 text-emerald-700 border-emerald-200';
+                                    } elseif ($o['status'] === 'baking') {
+                                        $statusLabel = 'In Oven';
+                                        $statusClass = 'bg-amber-100 text-amber-700 border-amber-200';
+                                    } elseif ($o['status'] === 'dispatched') {
+                                        $statusLabel = 'Dispatched';
+                                        $statusClass = 'bg-indigo-100 text-indigo-700 border-indigo-200';
+                                    }
+                                    
+                                    $ovens = ['Oven Deck A', 'Oven Convection B', 'Oven Rotary C'];
+                                    $assignedOven = $ovens[$idx % 3];
+                                    $duration = (15 + ($idx * 5)) . ' Mins';
+                                    // Mock realistic timestamp based on order age
+                                    $timeStr = date('h:i A', time() - ($idx * 1800));
+                                ?>
                                 <tr class="hover:bg-bakery-50/50 transition-colors">
-                                    <td class="py-3 px-2">04:30 AM</td>
-                                    <td class="py-3 px-2 font-bold text-espresso-950">French Baguettes</td>
-                                    <td class="py-3 px-2">120 Loaves</td>
-                                    <td class="py-3 px-2">Oven Rotary C</td>
-                                    <td class="py-3 px-2">35 Mins</td>
-                                    <td class="py-3 px-2"><span class="text-xxs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 uppercase border border-emerald-200">Completed</span></td>
+                                    <td class="py-3 px-2"><?php echo htmlspecialchars($timeStr); ?></td>
+                                    <td class="py-3 px-2 font-bold text-espresso-950"><?php echo htmlspecialchars($itemsStr); ?></td>
+                                    <td class="py-3 px-2"><?php echo $totalQty; ?> Units</td>
+                                    <td class="py-3 px-2"><?php echo $assignedOven; ?></td>
+                                    <td class="py-3 px-2"><?php echo $duration; ?></td>
+                                    <td class="py-3 px-2">
+                                        <span class="text-xxs font-bold px-2 py-0.5 rounded-full uppercase border <?php echo $statusClass; ?>">
+                                            <?php echo $statusLabel; ?>
+                                        </span>
+                                    </td>
                                 </tr>
-                                <tr class="hover:bg-bakery-50/50 transition-colors">
-                                    <td class="py-3 px-2">05:15 AM</td>
-                                    <td class="py-3 px-2 font-bold text-espresso-950">Butter Croissants</td>
-                                    <td class="py-3 px-2">80 Units</td>
-                                    <td class="py-3 px-2">Oven Deck A</td>
-                                    <td class="py-3 px-2">20 Mins</td>
-                                    <td class="py-3 px-2"><span class="text-xxs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 uppercase border border-amber-200">In Oven</span></td>
-                                </tr>
-                                <tr class="hover:bg-bakery-50/50 transition-colors">
-                                    <td class="py-3 px-2">06:00 AM</td>
-                                    <td class="py-3 px-2 font-bold text-espresso-950">Sourdough Boules</td>
-                                    <td class="py-3 px-2">45 Boules</td>
-                                    <td class="py-3 px-2">Oven Rotary C</td>
-                                    <td class="py-3 px-2">40 Mins</td>
-                                    <td class="py-3 px-2"><span class="text-xxs font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 uppercase border border-rose-200">Queued</span></td>
-                                </tr>
-                                <tr class="hover:bg-bakery-50/50 transition-colors">
-                                    <td class="py-3 px-2">07:30 AM</td>
-                                    <td class="py-3 px-2 font-bold text-espresso-950">Belgian Chocolate Tarts</td>
-                                    <td class="py-3 px-2">30 Tarts</td>
-                                    <td class="py-3 px-2">Oven Convection B</td>
-                                    <td class="py-3 px-2">15 Mins</td>
-                                    <td class="py-3 px-2"><span class="text-xxs font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 uppercase border border-rose-200">Queued</span></td>
-                                </tr>
+                                <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
