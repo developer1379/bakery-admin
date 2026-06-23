@@ -17,6 +17,14 @@
       "dest": "/api/$1"
     },
     {
+      "src": "/(index|login|logout|orders|products|analytics|ovens|inventory|settings)\\.html",
+      "dest": "/$1.php"
+    },
+    {
+      "src": "/(index|login|logout|orders|products|analytics|ovens|inventory|settings)",
+      "dest": "/$1.php"
+    },
+    {
       "src": "/$",
       "dest": "/index.php"
     },
