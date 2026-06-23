@@ -1,5 +1,5 @@
 <?php
-require_once '../config.php';
+require_once dirname(__DIR__) . '/config.php';
 
 $authenticated = false;
 if (isset($_COOKIE['bakery_session_token']) && !empty($_COOKIE['bakery_session_token'])) {

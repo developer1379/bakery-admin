@@ -69,20 +69,24 @@ function initNavigation() {
     const pageTitle = document.getElementById("page-title");
 
     // Open/Close Sidebar (Mobile)
-    openBtn.addEventListener("click", () => {
-        sidebar.classList.remove("-translate-x-full");
-        overlay.classList.remove("hidden");
-        setTimeout(() => overlay.classList.add("opacity-100"), 50);
-    });
+    if (openBtn && sidebar && overlay) {
+        openBtn.addEventListener("click", () => {
+            sidebar.classList.remove("-translate-x-full");
+            overlay.classList.remove("hidden");
+            setTimeout(() => overlay.classList.add("opacity-100"), 50);
+        });
+    }
 
     const closeSidebar = () => {
-        sidebar.classList.add("-translate-x-full");
-        overlay.classList.remove("opacity-100");
-        setTimeout(() => overlay.classList.add("hidden"), 300);
+        if (sidebar && overlay) {
+            sidebar.classList.add("-translate-x-full");
+            overlay.classList.remove("opacity-100");
+            setTimeout(() => overlay.classList.add("hidden"), 300);
+        }
     };
 
-    closeBtn.addEventListener("click", closeSidebar);
-    overlay.addEventListener("click", closeSidebar);
+    if (closeBtn) closeBtn.addEventListener("click", closeSidebar);
+    if (overlay) overlay.addEventListener("click", closeSidebar);
 
     // Tab Swapping
     const navButtons = document.querySelectorAll("[data-tab]");
@@ -314,18 +318,20 @@ function initNotifications() {
     const notifyBtn = document.getElementById("notify-btn");
     const notifyDropdown = document.getElementById("notify-dropdown");
 
-    notifyBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        notifyDropdown.classList.toggle("hidden");
-    });
+    if (notifyBtn && notifyDropdown) {
+        notifyBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            notifyDropdown.classList.toggle("hidden");
+        });
 
-    document.addEventListener("click", () => {
-        notifyDropdown.classList.add("hidden");
-    });
+        document.addEventListener("click", () => {
+            notifyDropdown.classList.add("hidden");
+        });
 
-    notifyDropdown.addEventListener("click", (e) => {
-        e.stopPropagation();
-    });
+        notifyDropdown.addEventListener("click", (e) => {
+            e.stopPropagation();
+        });
+    }
 }
 
 // 4. PRODUCTS MANAGEMENT (CRUD & Render)
