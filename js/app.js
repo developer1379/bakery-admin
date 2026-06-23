@@ -18,10 +18,8 @@ let ordersData = [
 
 let charts = {};
 
-// Authentication Check (Prevent flash by redirecting immediately if script executes)
-if (sessionStorage.getItem("bakery_logged_in") !== "true") {
-    window.location.href = "login.php";
-}
+// Authentication Check (Handled entirely server-side in PHP)
+
 
 function handleLogout() {
     sessionStorage.removeItem("bakery_logged_in");

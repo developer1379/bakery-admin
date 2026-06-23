@@ -20,12 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($dbUser && password_verify($pass, $dbUser['password'])) {
         $_SESSION['bakery_logged_in'] = true;
-        
-        // Sync sessionStorage if needed, then redirect
-        echo "<script>
-            sessionStorage.setItem('bakery_logged_in', 'true');
-            window.location.href = 'index.php';
-        </script>";
+        header("Location: index.php");
         exit;
     } else {
         $errorMsg = 'Invalid username or password!';
