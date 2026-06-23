@@ -95,6 +95,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="h-full text-espresso-900 font-sans flex items-center justify-center p-4 sm:p-6 bg-cover bg-center relative" style="background-image: linear-gradient(rgba(39, 20, 6, 0.6), rgba(39, 20, 6, 0.75)), url('https://images.unsplash.com/photo-1509440159596-0249088772ff?w=1600&auto=format&fit=crop&q=80')">
 
+    <!-- BAKERY PRELOADER -->
+    <div id="bakery-preloader" class="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#FAF7F2] transition-opacity duration-500">
+        <div class="relative flex flex-col items-center space-y-4">
+            <!-- Floating Bakery Icon with animated steam -->
+            <div class="relative flex items-center justify-center w-24 h-24 rounded-3xl bg-bakery-500 text-white shadow-m-high animate-bounce" style="animation-duration: 2.2s;">
+                <span class="material-icons-round text-5xl">bakery_dining</span>
+                <!-- Steaming accent ripples -->
+                <span class="absolute -top-3 left-1/2 transform -translate-x-1/2 flex gap-1">
+                    <span class="w-1 h-3 bg-bakery-300 rounded-full animate-pulse" style="animation-delay: 0.1s;"></span>
+                    <span class="w-1.5 h-5 bg-bakery-400/80 rounded-full animate-pulse" style="animation-delay: 0.3s;"></span>
+                    <span class="w-1 h-3 bg-bakery-300 rounded-full animate-pulse" style="animation-delay: 0.5s;"></span>
+                </span>
+            </div>
+            <!-- Brand & Loading Message -->
+            <div class="text-center">
+                <h3 class="font-serif text-xl font-bold text-espresso-950">L'Amour Du Pain</h3>
+                <p class="text-xs font-semibold text-bakery-600 uppercase tracking-widest mt-1">Heating the ovens...</p>
+            </div>
+            <!-- Progress Track -->
+            <div class="w-48 bg-espresso-200 h-1.5 rounded-full overflow-hidden shadow-inner relative">
+                <div class="bg-bakery-500 h-full rounded-full absolute top-0 left-0 animate-[progress_1.8s_ease-in-out_infinite]" style="width: 40%;"></div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes progress {
+            0% { left: -40%; }
+            50% { left: 100%; }
+            100% { left: -40%; }
+        }
+    </style>
+
+    <script>
+        // Fade out preloader when all assets are loaded
+        window.addEventListener('load', function() {
+            const preloader = document.getElementById('bakery-preloader');
+            if (preloader) {
+                preloader.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => {
+                    preloader.remove();
+                }, 600);
+            }
+        });
+    </script>
+
     <div class="w-full max-w-md bg-white/95 backdrop-blur-md rounded-3xl shadow-m-high border border-white/20 overflow-hidden p-8 space-y-6">
         <!-- Logo and Title -->
         <div class="flex flex-col items-center text-center space-y-2">
