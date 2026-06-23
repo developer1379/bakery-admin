@@ -1,19 +1,5 @@
 <?php
 require_once 'auth_check.php';
-
-// Fetch products
-$pStmt = $pdo->query("SELECT id, name, category, price, description as `desc`, status, stock, limit_val as `limit`, image_url as img FROM products ORDER BY id DESC");
-$products = $pStmt->fetchAll();
-
-// Fetch orders
-$oStmt = $pdo->query("SELECT id, customer, email, priority, type, status, time_ago as time, total, items_json FROM orders ORDER BY created_at DESC");
-$dbOrders = $oStmt->fetchAll();
-$orders = [];
-foreach ($dbOrders as $o) {
-    $o['items'] = json_decode($o['items_json'], true);
-    unset($o['items_json']);
-    $orders[] = $o;
-}
 ?>
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-[#FAF7F2]">
@@ -254,10 +240,6 @@ foreach ($dbOrders as $o) {
         <span class="text-sm font-bold" id="toast-message">Success!</span>
     </div>
 
-    <script>
-        var productsData = <?php echo json_encode($products); ?>;
-        var ordersData = <?php echo json_encode($orders); ?>;
-    </script>
     <!-- MAIN APP JS -->
     <script src="js/app.js"></script>
 </body>

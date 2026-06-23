@@ -241,10 +241,6 @@ foreach ($dbOrders as $o) {
         <span class="text-sm font-bold" id="toast-message">Success!</span>
     </div>
 
-    <script>
-        var productsData = <?php echo json_encode($products); ?>;
-        var ordersData = <?php echo json_encode($orders); ?>;
-    </script>
     <!-- MAIN APP JS -->
     <script src="js/app.js"></script>
 </body>

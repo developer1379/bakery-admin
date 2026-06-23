@@ -1,19 +1,5 @@
 <?php
 require_once 'auth_check.php';
-
-// Fetch products
-$pStmt = $pdo->query("SELECT id, name, category, price, description as `desc`, status, stock, limit_val as `limit`, image_url as img FROM products ORDER BY id DESC");
-$products = $pStmt->fetchAll();
-
-// Fetch orders
-$oStmt = $pdo->query("SELECT id, customer, email, priority, type, status, time_ago as time, total, items_json FROM orders ORDER BY created_at DESC");
-$dbOrders = $oStmt->fetchAll();
-$orders = [];
-foreach ($dbOrders as $o) {
-    $o['items'] = json_decode($o['items_json'], true);
-    unset($o['items_json']);
-    $orders[] = $o;
-}
 ?>
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-[#FAF7F2]">
@@ -287,48 +273,8 @@ foreach ($dbOrders as $o) {
                                     <th class="py-3 px-2">Status</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-[#FAF6F0] text-sm text-espresso-800 font-medium">
-                                <?php foreach ($orders as $idx => $o): 
-                                    $itemNames = [];
-                                    $totalQty = 0;
-                                    foreach ($o['items'] as $item) {
-                                        $itemNames[] = $item['name'];
-                                        $totalQty += $item['qty'];
-                                    }
-                                    $itemsStr = implode(', ', $itemNames);
-                                    
-                                    $statusLabel = 'Queued';
-                                    $statusClass = 'bg-rose-100 text-rose-700 border-rose-200';
-                                    if ($o['status'] === 'delivered') {
-                                        $statusLabel = 'Completed';
-                                        $statusClass = 'bg-emerald-100 text-emerald-700 border-emerald-200';
-                                    } elseif ($o['status'] === 'baking') {
-                                        $statusLabel = 'In Oven';
-                                        $statusClass = 'bg-amber-100 text-amber-700 border-amber-200';
-                                    } elseif ($o['status'] === 'dispatched') {
-                                        $statusLabel = 'Dispatched';
-                                        $statusClass = 'bg-indigo-100 text-indigo-700 border-indigo-200';
-                                    }
-                                    
-                                    $ovens = ['Oven Deck A', 'Oven Convection B', 'Oven Rotary C'];
-                                    $assignedOven = $ovens[$idx % 3];
-                                    $duration = (15 + ($idx * 5)) . ' Mins';
-                                    // Mock realistic timestamp based on order age
-                                    $timeStr = date('h:i A', time() - ($idx * 1800));
-                                ?>
-                                <tr class="hover:bg-bakery-50/50 transition-colors">
-                                    <td class="py-3 px-2"><?php echo htmlspecialchars($timeStr); ?></td>
-                                    <td class="py-3 px-2 font-bold text-espresso-950"><?php echo htmlspecialchars($itemsStr); ?></td>
-                                    <td class="py-3 px-2"><?php echo $totalQty; ?> Units</td>
-                                    <td class="py-3 px-2"><?php echo $assignedOven; ?></td>
-                                    <td class="py-3 px-2"><?php echo $duration; ?></td>
-                                    <td class="py-3 px-2">
-                                        <span class="text-xxs font-bold px-2 py-0.5 rounded-full uppercase border <?php echo $statusClass; ?>">
-                                            <?php echo $statusLabel; ?>
-                                        </span>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
+                            <tbody id="ovens-schedule-tbody" class="divide-y divide-[#FAF6F0] text-sm text-espresso-800 font-medium">
+                                <!-- Populated dynamically by app.js -->
                             </tbody>
                         </table>
                     </div>
@@ -344,10 +290,6 @@ foreach ($dbOrders as $o) {
         <span class="text-sm font-bold" id="toast-message">Success!</span>
     </div>
 
-    <script>
-        var productsData = <?php echo json_encode($products); ?>;
-        var ordersData = <?php echo json_encode($orders); ?>;
-    </script>
     <!-- MAIN APP JS -->
     <script src="js/app.js"></script>
 </body>

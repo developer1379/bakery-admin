@@ -1,29 +1,9 @@
 // bakery admin dashboard app logic
 
 // Global State
-if (typeof productsData === 'undefined') {
-    var productsData = [
-        { id: 1, name: "Butter Croissant", category: "Pastries", price: 150.00, desc: "Crispy, flaky french style layered puff pastry made with 100% Normandy butter.", status: "In Stock", stock: 80, limit: 120, img: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=400&auto=format&fit=crop&q=80" },
-        { id: 2, name: "Artisan Sourdough", category: "Bread", price: 320.00, desc: "Wild yeast slow fermented boule with a robust blistered crust and open airy crumb.", status: "Low Stock", stock: 5, limit: 30, img: "https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=400&auto=format&fit=crop&q=80" },
-        { id: 3, name: "Chocolate Truffle Gateau", category: "Cakes", price: 1200.00, desc: "Decadent 3-layer Belgian dark chocolate cake iced with creamy chocolate ganache.", status: "In Stock", stock: 8, limit: 10, img: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&auto=format&fit=crop&q=80" },
-        { id: 4, name: "Gourmet Macarons", category: "Pastries", price: 650.00, desc: "Assorted box of 12 french almond shells filled with custom buttercreams and curds.", status: "Out of Stock", stock: 0, limit: 50, img: "https://images.unsplash.com/photo-1569864358642-9d1684040f43?w=400&auto=format&fit=crop&q=80" }
-    ];
-}
-
-if (typeof ordersData === 'undefined') {
-    var ordersData = [
-        { id: "ORD-4920", customer: "Henri Matisse", email: "henri@fauvism-art.fr", items: [{ name: 'Chocolate Gateau (8")', qty: 1, price: 1200.00 }], priority: "ASAP", type: "Delivery", status: "pending", time: "15m ago" },
-        { id: "ORD-4921", customer: "Charlotte Corday", email: "charlotte@normandy-mail.fr", items: [{ name: 'Artisan Sourdough', qty: 2, price: 320.00 }, { name: 'Butter Croissant', qty: 3, price: 150.00 }], priority: "Oven A", type: "Dine-in", status: "baking", time: "5m ago" },
-        { id: "ORD-4922", customer: "Albert Camus", email: "albert@existential.com", items: [{ name: 'Lemon Tart', qty: 4, price: 180.00 }, { name: 'Espresso', qty: 1, price: 140.00 }], priority: "Standard", type: "Takeaway", status: "pending", time: "22m ago" },
-        { id: "ORD-4919", customer: "Simone de Beauvoir", email: "simone@existential.com", items: [{ name: 'Mixed Macarons', qty: 1, price: 650.00 }], priority: "Driver Dave", type: "Delivery", status: "dispatched", time: "1h ago" },
-        { id: "ORD-4918", customer: "Jean-Paul Sartre", email: "jeanpaul@existential.com", items: [{ name: 'Baguette', qty: 2, price: 90.00 }, { name: 'Salted Caramel Spread', qty: 1, price: 250.00 }], priority: "Standard", type: "Delivery", status: "delivered", time: "2h ago" }
-    ];
-}
-
+var productsData = [];
+var ordersData = [];
 var charts = {};
-
-// Authentication Check (Handled entirely server-side in PHP)
-
 
 function handleLogout() {
     sessionStorage.removeItem("bakery_logged_in");
@@ -33,14 +13,52 @@ function handleLogout() {
 // DOM Ready
 document.addEventListener("DOMContentLoaded", () => {
     initNavigation();
-    initCharts();
     initNotifications();
     initSearchAndFilters();
     initRippleEffect();
-    renderProductsGrid();
-    renderOrdersBoard();
-    renderDashboardRecentOrders();
+    
+    // Fetch dashboard/catalog data dynamically
+    Promise.all([
+        fetch('api/get_products.php').then(r => {
+            if (!r.ok) throw new Error('Unauthorized or server error');
+            return r.json();
+        }),
+        fetch('api/get_orders.php').then(r => {
+            if (!r.ok) throw new Error('Unauthorized or server error');
+            return r.json();
+        })
+    ])
+    .then(([products, orders]) => {
+        productsData = products;
+        ordersData = orders;
+        
+        // Render dynamic page sections
+        renderProductsGrid();
+        renderOrdersBoard();
+        renderDashboardRecentOrders();
+        renderNewOrderProducts();
+        renderOvensSchedule();
+        initCharts();
+        
+        // Hide preloader once data is successfully loaded and rendered
+        const preloader = document.getElementById('bakery-preloader');
+        if (preloader) {
+            preloader.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                preloader.remove();
+            }, 600);
+        }
+    })
+    .catch(err => {
+        console.error('Failed to load dashboard data:', err);
+        // Fallback hide preloader on failure so user isn't stuck
+        const preloader = document.getElementById('bakery-preloader');
+        if (preloader) {
+            preloader.classList.add('opacity-0', 'pointer-events-none');
+        }
+    });
 });
+
 
 // 1. NAVIGATION & TABS
 function initNavigation() {
@@ -753,6 +771,79 @@ function renderDashboardRecentOrders() {
             </td>
             <td class="py-3 px-2 text-right">
                 <button onclick="openOrderModal('${o.id}')" class="text-xs font-bold text-bakery-600 hover:text-bakery-800 transition-colors">Details</button>
+            </td>
+        `;
+        tableBody.appendChild(tr);
+    });
+}
+
+function renderNewOrderProducts() {
+    const listContainer = document.getElementById("new-order-items-list");
+    if (!listContainer) return;
+    listContainer.innerHTML = "";
+    
+    productsData.forEach(p => {
+        const label = document.createElement("label");
+        label.className = "flex items-center justify-between text-xs font-semibold text-espresso-800";
+        label.innerHTML = `
+            <span class="flex items-center gap-2">
+                <input type="checkbox" name="o-items" value="${p.name}|${parseFloat(p.price)}" class="rounded border-[#EAE3D5] text-bakery-600 focus:ring-bakery-400">
+                ${p.name} (₹${parseFloat(p.price).toFixed(2)})
+            </span>
+            <input type="number" min="1" max="20" value="1" class="w-12 px-1 py-0.5 border border-[#EAE3D5] rounded text-center">
+        `;
+        listContainer.appendChild(label);
+    });
+}
+
+function renderOvensSchedule() {
+    const tableBody = document.getElementById("ovens-schedule-tbody");
+    if (!tableBody) return;
+    tableBody.innerHTML = "";
+
+    ordersData.forEach((o, idx) => {
+        const itemNames = o.items.map(item => item.name);
+        const totalQty = o.items.reduce((acc, item) => acc + parseInt(item.qty), 0);
+        const itemsStr = itemNames.join(', ');
+
+        let statusLabel = 'Queued';
+        let statusClass = 'bg-rose-100 text-rose-700 border-rose-200';
+        if (o.status === 'delivered') {
+            statusLabel = 'Completed';
+            statusClass = 'bg-emerald-100 text-emerald-700 border-emerald-200';
+        } else if (o.status === 'baking') {
+            statusLabel = 'In Oven';
+            statusClass = 'bg-amber-100 text-amber-700 border-amber-200';
+        } else if (o.status === 'dispatched') {
+            statusLabel = 'Dispatched';
+            statusClass = 'bg-indigo-100 text-indigo-700 border-indigo-200';
+        }
+
+        const ovensList = ['Oven Deck A', 'Oven Convection B', 'Oven Rotary C'];
+        const assignedOven = ovensList[idx % 3];
+        const duration = (15 + (idx * 5)) + ' Mins';
+        
+        const d = new Date();
+        d.setMinutes(d.getMinutes() - (idx * 30));
+        const hours = d.getHours();
+        const minutes = d.getMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const formattedHours = hours % 12 || 12;
+        const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+        const timeStr = `${formattedHours}:${formattedMinutes} ${ampm}`;
+
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-bakery-50/50 transition-colors";
+        tr.innerHTML = `
+            <td class="py-3 px-2">${timeStr}</td>
+            <td class="py-3 px-2 font-bold text-espresso-950">${itemsStr}</td>
+            <td class="py-3 px-2">${totalQty} Units</td>
+            <td class="py-3 px-2">${assignedOven}</td>
+            <td class="py-3 px-2">${duration}</td>
+            <td class="py-3 px-2">
+                <span class="text-xxs font-bold px-2 py-0.5 rounded-full uppercase border ${statusClass}">
+                    ${statusLabel}
+                </span>
             </td>
         `;
         tableBody.appendChild(tr);

@@ -1,33 +1,22 @@
 <?php
 require_once 'auth_check.php';
 
-// Fetch products
-$pStmt = $pdo->query("SELECT id, name, category, price, description as `desc`, status, stock, limit_val as `limit`, image_url as img FROM products ORDER BY id DESC");
-$products = $pStmt->fetchAll();
-
-// Fetch orders
-$oStmt = $pdo->query("SELECT id, customer, email, priority, type, status, time_ago as time, total, items_json FROM orders ORDER BY created_at DESC");
-$dbOrders = $oStmt->fetchAll();
-$orders = [];
-foreach ($dbOrders as $o) {
-    $o['items'] = json_decode($o['items_json'], true);
-    unset($o['items_json']);
-    $orders[] = $o;
-}
-
 // Stats computations
 $salesStmt = $pdo->query("SELECT SUM(total) as total_sales FROM orders WHERE status = 'delivered'");
 $salesData = $salesStmt->fetch();
 $todaySales = $salesData['total_sales'] ?? 0.00;
 
+$bakedStmt = $pdo->query("SELECT items_json FROM orders WHERE status IN ('delivered', 'dispatched', 'baking')");
 $totalBakedItems = 0;
-foreach ($orders as $o) {
-    if (in_array($o['status'], ['delivered', 'dispatched', 'baking'])) {
-        foreach ($o['items'] as $item) {
-            $totalBakedItems += $item['qty'];
+while ($row = $bakedStmt->fetch()) {
+    $items = json_decode($row['items_json'], true);
+    if (is_array($items)) {
+        foreach ($items as $item) {
+            $totalBakedItems += intval($item['qty']);
         }
     }
 }
+
 
 $activeStmt = $pdo->query("SELECT COUNT(*) as active_count FROM orders WHERE status != 'delivered'");
 $activeData = $activeStmt->fetch();
@@ -588,10 +577,6 @@ $deliveriesCount = $delivData['deliv_count'] ?? 0;
         <span class="text-sm font-bold" id="toast-message">Success! Order completed.</span>
     </div>
 
-    <script>
-        var productsData = <?php echo json_encode($products); ?>;
-        var ordersData = <?php echo json_encode($orders); ?>;
-    </script>
     <!-- MAIN APP JS -->
     <script src="js/app.js"></script>
 </body>
