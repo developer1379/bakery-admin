@@ -26,22 +26,24 @@ if (strpos($path, 'api/') === 0 && $path !== 'api/index') {
 
 // Map of standard page views in the root directory
 $allowed_files = [
-    'index' => '../index.php',
-    'login' => '../login.php',
-    'logout' => '../logout.php',
-    'orders' => '../orders.php',
-    'products' => '../products.php',
-    'analytics' => '../analytics.php',
-    'ovens' => '../ovens.php',
-    'inventory' => '../inventory.php',
-    'settings' => '../settings.php',
+    'index' => 'index.php',
+    'login' => 'login.php',
+    'logout' => 'logout.php',
+    'orders' => 'orders.php',
+    'products' => 'products.php',
+    'analytics' => 'analytics.php',
+    'ovens' => 'ovens.php',
+    'inventory' => 'inventory.php',
+    'settings' => 'settings.php',
 ];
 
 if (isset($allowed_files[$path])) {
+    $target = dirname(__DIR__) . '/' . $allowed_files[$path];
     chdir(dirname(__DIR__));
-    include $allowed_files[$path];
+    include $target;
 } else {
     // If route doesn't match any allowed files, fallback to index
+    $target = dirname(__DIR__) . '/index.php';
     chdir(dirname(__DIR__));
-    include '../index.php';
+    include $target;
 }
