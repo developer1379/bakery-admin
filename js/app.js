@@ -20,12 +20,12 @@ let charts = {};
 
 // Authentication Check (Prevent flash by redirecting immediately if script executes)
 if (sessionStorage.getItem("bakery_logged_in") !== "true") {
-    window.location.href = "login.html";
+    window.location.href = "login.php";
 }
 
 function handleLogout() {
     sessionStorage.removeItem("bakery_logged_in");
-    window.location.href = "login.html";
+    window.location.href = "logout.php";
 }
 
 // DOM Ready
@@ -428,18 +428,29 @@ function saveProduct(event) {
     const desc = document.getElementById("p-desc").value;
     const stock = parseInt(document.getElementById("p-stock").value);
     const status = document.getElementById("p-status").value;
-    const img = document.getElementById("p-img").value || "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400";
+    const img = document.getElementById("p-img").value;
 
-    const newProd = {
-        id: productsData.length + 1,
-        name, category, price, desc, stock, limit: stock + 20, status, img
-    };
-
-    productsData.unshift(newProd);
-    renderProductsGrid();
-    closeAddProductModal();
-    showToast(`New item "${name}" added successfully!`);
-    event.target.reset();
+    fetch('api/add_product.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, category, price, desc, stock, status, img })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            productsData.unshift(res.product);
+            renderProductsGrid();
+            closeAddProductModal();
+            showToast(`New item "${name}" added successfully!`);
+            event.target.reset();
+        } else {
+            alert('Failed to add product: ' + (res.error || 'Unknown error'));
+        }
+    })
+    .catch(e => {
+        console.error(e);
+        alert('An error occurred while adding the product.');
+    });
 }
 
 
@@ -591,15 +602,28 @@ function updateOrderStatus(newStatus) {
     const order = ordersData.find(o => o.id === currentSelectedOrderId);
     if (!order) return;
 
-    order.status = newStatus;
-    
-    // Status-specific adjustments
-    if (newStatus === 'baking') order.priority = 'Oven A';
-    if (newStatus === 'delivered') order.priority = 'Paid';
-
-    renderOrdersBoard();
-    closeOrderModal();
-    showToast(`Order ${order.id} status updated to: ${newStatus}`);
+    fetch('api/update_order_status.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: currentSelectedOrderId, status: newStatus })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            order.status = newStatus;
+            if (newStatus === 'baking') order.priority = 'Oven A';
+            if (newStatus === 'delivered') order.priority = 'Paid';
+            renderOrdersBoard();
+            closeOrderModal();
+            showToast(`Order ${order.id} status updated to: ${newStatus}`);
+        } else {
+            alert('Failed to update order: ' + (res.error || 'Unknown error'));
+        }
+    })
+    .catch(e => {
+        console.error(e);
+        alert('An error occurred while updating the order status.');
+    });
 }
 
 // Add Order Modal Toggles
@@ -643,24 +667,27 @@ function saveNewOrder(event) {
         return;
     }
 
-    const orderId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    const newOrder = {
-        id: orderId,
-        customer,
-        email: `${customer.toLowerCase().replace(/\s+/g, '')}@bakery-cust.com`,
-        items: checkedItems,
-        priority,
-        type,
-        status: "pending",
-        time: "Just now"
-    };
-
-    ordersData.unshift(newOrder);
-    renderOrdersBoard();
-    closeNewOrderModal();
-    showToast(`Logged new order ${orderId} successfully!`);
-    event.target.reset();
+    fetch('api/add_order.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customer, priority, type, items: checkedItems })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            ordersData.unshift(res.order);
+            renderOrdersBoard();
+            closeNewOrderModal();
+            showToast(`Logged new order ${res.order.id} successfully!`);
+            event.target.reset();
+        } else {
+            alert('Failed to create order: ' + (res.error || 'Unknown error'));
+        }
+    })
+    .catch(e => {
+        console.error(e);
+        alert('An error occurred while creating the order.');
+    });
 }
 
 

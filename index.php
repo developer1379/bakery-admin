@@ -1,11 +1,50 @@
+<?php
+session_start();
+if (!isset($_SESSION['bakery_logged_in']) || $_SESSION['bakery_logged_in'] !== true) {
+    header("Location: login.php");
+    exit;
+}
+require_once 'config.php';
+
+// Fetch products
+$pStmt = $pdo->query("SELECT id, name, category, price, description as `desc`, status, stock, limit_val as `limit`, image_url as img FROM products ORDER BY id DESC");
+$products = $pStmt->fetchAll();
+
+// Fetch orders
+$oStmt = $pdo->query("SELECT id, customer, email, priority, type, status, time_ago as time, total, items_json FROM orders ORDER BY created_at DESC");
+$dbOrders = $oStmt->fetchAll();
+$orders = [];
+foreach ($dbOrders as $o) {
+    $o['items'] = json_decode($o['items_json'], true);
+    unset($o['items_json']);
+    $orders[] = $o;
+}
+
+// Stats computations
+$salesStmt = $pdo->query("SELECT SUM(total) as total_sales FROM orders WHERE status = 'delivered'");
+$salesData = $salesStmt->fetch();
+$todaySales = $salesData['total_sales'] ?? 0.00;
+
+$totalBakedItems = 0;
+foreach ($orders as $o) {
+    if (in_array($o['status'], ['delivered', 'dispatched', 'baking'])) {
+        foreach ($o['items'] as $item) {
+            $totalBakedItems += $item['qty'];
+        }
+    }
+}
+
+$activeStmt = $pdo->query("SELECT COUNT(*) as active_count FROM orders WHERE status != 'delivered'");
+$activeData = $activeStmt->fetch();
+$activeOrdersCount = $activeData['active_count'] ?? 0;
+
+$delivStmt = $pdo->query("SELECT COUNT(*) as deliv_count FROM orders WHERE type = 'Delivery' AND status = 'dispatched'");
+$delivData = $delivStmt->fetch();
+$deliveriesCount = $delivData['deliv_count'] ?? 0;
+?>
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-[#FAF7F2]">
 <head>
-    <script>
-        if (sessionStorage.getItem("bakery_logged_in") !== "true") {
-            window.location.href = "login.html";
-        }
-    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>L'Amour Du Pain - Bakery Admin Dashboard</title>
@@ -93,109 +132,7 @@
     <div id="mobile-sidebar-overlay" class="fixed inset-0 z-40 bg-espresso-950/40 backdrop-blur-sm hidden transition-opacity duration-300 opacity-0 lg:hidden"></div>
 
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-espresso-900 text-espresso-100 transition-all duration-300 -translate-x-full lg:translate-x-0 lg:static lg:z-auto shadow-m-elevated border-r border-espresso-800">
-        <!-- Sidebar Header (Logo) -->
-        <div class="flex h-20 items-center justify-between px-6 border-b border-espresso-800">
-            <a href="index.html" class="flex items-center gap-3">
-                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-bakery-500 text-espresso-950 shadow-m-flat">
-                    <span class="material-icons-round text-2xl">bakery_dining</span>
-                </div>
-                <div>
-                    <h1 class="font-serif text-lg font-bold leading-tight text-white tracking-wide">L'Amour Du Pain</h1>
-                    <span class="text-xs font-semibold text-bakery-400 uppercase tracking-widest">Bakery Suite</span>
-                </div>
-            </a>
-            <button id="close-sidebar-btn" class="flex h-10 w-10 items-center justify-center rounded-lg text-espresso-400 hover:bg-espresso-800 hover:text-white lg:hidden">
-                <span class="material-icons-round">close</span>
-            </button>
-        </div>
-
-        <!-- Sidebar Navigation Menu -->
-        <nav class="flex-1 space-y-1 px-4 py-6 overflow-y-auto scrollbar-thin">
-            <div>
-                <span class="px-3 text-xxs font-bold text-espresso-400 uppercase tracking-widest block mb-2">Workspace</span>
-                <ul class="space-y-1">
-                    <li>
-                        <a href="index.html" class="nav-item active flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200">
-                            <span class="material-icons-round text-xl">dashboard</span>
-                            <span>Dashboard</span>
-                            <span class="ml-auto flex h-2 w-2 rounded-full bg-rose-500 animate-pulse"></span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="orders.html" class="nav-item flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200">
-                            <span class="material-icons-round text-xl">receipt_long</span>
-                            <span>Live Orders</span>
-                            <span id="sidebar-orders-badge" class="ml-auto bg-bakery-500 text-espresso-950 text-xs px-2 py-0.5 rounded-full font-bold">12</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="products.html" class="nav-item flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200">
-                            <span class="material-icons-round text-xl">cake</span>
-                            <span>Bake Catalog</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="analytics.html" class="nav-item flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200">
-                            <span class="material-icons-round text-xl">query_stats</span>
-                            <span>Analytics</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="pt-6">
-                <span class="px-3 text-xxs font-bold text-espresso-400 uppercase tracking-widest block mb-2">Operations</span>
-                <ul class="space-y-1">
-                    <li>
-                        <a href="ovens.html" class="nav-item flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200">
-                            <span class="material-icons-round text-xl">soup_kitchen</span>
-                            <span>Ovens & Baking</span>
-                            <span class="ml-auto text-amber-400 text-xs font-semibold flex items-center gap-0.5">
-                                <span class="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span> 3 Active
-                            </span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="inventory.html" class="nav-item flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200">
-                            <span class="material-icons-round text-xl">inventory_2</span>
-                            <span>Inventory</span>
-                            <span class="ml-auto bg-rose-500/20 text-rose-300 text-xxs px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Stock Warning</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="pt-6">
-                <span class="px-3 text-xxs font-bold text-espresso-400 uppercase tracking-widest block mb-2">Administration</span>
-                <ul class="space-y-1">
-                    <li>
-                        <a href="settings.html" class="nav-item flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200">
-                            <span class="material-icons-round text-xl">settings</span>
-                            <span>Settings</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
-
-        <!-- Sidebar Footer -->
-        <div class="p-4 border-t border-espresso-800 bg-espresso-950/30">
-            <div class="flex items-center gap-3">
-                <div class="relative">
-                    <img src="https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=100&auto=format&fit=crop&q=80" alt="Chef Avatar" class="h-11 w-11 rounded-xl object-cover ring-2 ring-bakery-500/30">
-                    <span class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-espresso-900"></span>
-                </div>
-                <div class="flex-1 overflow-hidden">
-                    <h4 class="text-sm font-semibold text-white truncate">Jean-Luc Boulanger</h4>
-                    <span class="text-xs text-bakery-400 truncate block">Master Baker Chef</span>
-                </div>
-                <button onclick="handleLogout()" class="text-espresso-400 hover:text-white transition-colors duration-150" title="Logout">
-                    <span class="material-icons-round">logout</span>
-                </button>
-            </div>
-        </div>
-    </aside>
+    <?php include 'sidebar.php'; ?>
 
     <!-- MAIN APP WRAPPER -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
@@ -289,7 +226,7 @@
                         </div>
                         <div>
                             <span class="text-xs font-semibold text-espresso-500 uppercase tracking-wider block">Today's Sales</span>
-                            <span class="text-2xl font-bold text-espresso-950 mt-1 block">₹2,485.60</span>
+                            <span class="text-2xl font-bold text-espresso-950 mt-1 block">₹<?php echo number_format($todaySales, 2); ?></span>
                             <span class="text-xs font-bold text-emerald-600 flex items-center mt-1">
                                 <span class="material-icons-round text-sm">trending_up</span> +14.2% <span class="text-espresso-400 font-normal ml-1">vs yesterday</span>
                             </span>
@@ -303,7 +240,7 @@
                         </div>
                         <div>
                             <span class="text-xs font-semibold text-espresso-500 uppercase tracking-wider block">Orders Baked</span>
-                            <span class="text-2xl font-bold text-espresso-950 mt-1 block">184 items</span>
+                            <span class="text-2xl font-bold text-espresso-950 mt-1 block"><?php echo $totalBakedItems; ?> items</span>
                             <span class="text-xs font-bold text-emerald-600 flex items-center mt-1">
                                 <span class="material-icons-round text-sm">trending_up</span> +8.5% <span class="text-espresso-400 font-normal ml-1">vs last week</span>
                             </span>
@@ -317,7 +254,7 @@
                         </div>
                         <div>
                             <span class="text-xs font-semibold text-espresso-500 uppercase tracking-wider block">Active Orders</span>
-                            <span class="text-2xl font-bold text-espresso-950 mt-1 block">12 Pending</span>
+                            <span class="text-2xl font-bold text-espresso-950 mt-1 block"><?php echo $activeOrdersCount; ?> Pending</span>
                             <span class="text-xs font-bold text-rose-500 flex items-center mt-1">
                                 <span class="material-icons-round text-sm animate-pulse">hourglass_empty</span> 4 in Ovens <span class="text-espresso-400 font-normal ml-1">right now</span>
                             </span>
@@ -331,7 +268,7 @@
                         </div>
                         <div>
                             <span class="text-xs font-semibold text-espresso-500 uppercase tracking-wider block">Deliveries</span>
-                            <span class="text-2xl font-bold text-espresso-950 mt-1 block">8 Dispatched</span>
+                            <span class="text-2xl font-bold text-espresso-950 mt-1 block"><?php echo $deliveriesCount; ?> Dispatched</span>
                             <span class="text-xs font-bold text-indigo-600 flex items-center mt-1">
                                 <span class="material-icons-round text-sm">navigation</span> 2 near target <span class="text-espresso-400 font-normal ml-1">ETA &lt;5m</span>
                             </span>
@@ -480,7 +417,7 @@
                                 <h3 class="font-serif text-lg font-bold text-espresso-950">Recent Kitchen Orders</h3>
                                 <p class="text-xs text-espresso-500">Live feed of pending and baking orders.</p>
                             </div>
-                            <a href="orders.html" class="text-xs font-bold text-bakery-600 hover:text-bakery-800 transition-colors flex items-center gap-1">
+                            <a href="orders.php" class="text-xs font-bold text-bakery-600 hover:text-bakery-800 transition-colors flex items-center gap-1">
                                 View Board <span class="material-icons-round text-sm">arrow_forward</span>
                             </a>
                         </div>
@@ -554,7 +491,7 @@
                                 </div>
                             </div>
 
-                            <a href="inventory.html" class="w-full block py-2.5 rounded-xl border border-bakery-300 text-xs font-bold text-bakery-700 hover:bg-bakery-50 hover:text-bakery-900 transition-all text-center">
+                            <a href="inventory.php" class="w-full block py-2.5 rounded-xl border border-bakery-300 text-xs font-bold text-bakery-700 hover:bg-bakery-50 hover:text-bakery-900 transition-all text-center">
                                 Open Inventory Registry
                             </a>
                         </div>
@@ -636,7 +573,7 @@
             <!-- Modal Actions -->
             <div class="p-4 bg-[#FAF6F0] border-t border-[#EAE3D5] flex items-center justify-between gap-3">
                 <button onclick="closeOrderModal()" class="px-4 py-2 text-xs font-bold text-espresso-600 hover:text-espresso-900">
-                    Close Panel
+                     Close Panel
                 </button>
                 <div class="flex items-center gap-2">
                     <button class="bg-[#FFE170] text-espresso-950 px-4 py-2 rounded-xl text-xs font-bold shadow-sm hover:bg-[#FFCE3B] transition-all" onclick="updateOrderStatus('baking')">
@@ -656,6 +593,10 @@
         <span class="text-sm font-bold" id="toast-message">Success! Order completed.</span>
     </div>
 
+    <script>
+        var productsData = <?php echo json_encode($products); ?>;
+        var ordersData = <?php echo json_encode($orders); ?>;
+    </script>
     <!-- MAIN APP JS -->
     <script src="js/app.js"></script>
 </body>

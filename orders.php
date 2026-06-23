@@ -1,11 +1,28 @@
+<?php
+session_start();
+if (!isset($_SESSION['bakery_logged_in']) || $_SESSION['bakery_logged_in'] !== true) {
+    header("Location: login.php");
+    exit;
+}
+require_once 'config.php';
+
+// Fetch products for order modal selection
+$pStmt = $pdo->query("SELECT id, name, category, price, description as `desc`, status, stock, limit_val as `limit`, image_url as img FROM products ORDER BY id DESC");
+$products = $pStmt->fetchAll();
+
+// Fetch orders
+$oStmt = $pdo->query("SELECT id, customer, email, priority, type, status, time_ago as time, total, items_json FROM orders ORDER BY created_at DESC");
+$dbOrders = $oStmt->fetchAll();
+$orders = [];
+foreach ($dbOrders as $o) {
+    $o['items'] = json_decode($o['items_json'], true);
+    unset($o['items_json']);
+    $orders[] = $o;
+}
+?>
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-[#FAF7F2]">
 <head>
-    <script>
-        if (sessionStorage.getItem("bakery_logged_in") !== "true") {
-            window.location.href = "login.html";
-        }
-    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Orders - L'Amour Du Pain</title>
@@ -90,105 +107,7 @@
     <div id="mobile-sidebar-overlay" class="fixed inset-0 z-40 bg-espresso-950/40 backdrop-blur-sm hidden transition-opacity duration-300 opacity-0 lg:hidden"></div>
 
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-espresso-900 text-espresso-100 transition-all duration-300 -translate-x-full lg:translate-x-0 lg:static lg:z-auto shadow-m-elevated border-r border-espresso-800">
-        <div class="flex h-20 items-center justify-between px-6 border-b border-espresso-800">
-            <a href="index.html" class="flex items-center gap-3">
-                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-bakery-500 text-espresso-950 shadow-m-flat">
-                    <span class="material-icons-round text-2xl">bakery_dining</span>
-                </div>
-                <div>
-                    <h1 class="font-serif text-lg font-bold leading-tight text-white tracking-wide">L'Amour Du Pain</h1>
-                    <span class="text-xs font-semibold text-bakery-400 uppercase tracking-widest">Bakery Suite</span>
-                </div>
-            </a>
-            <button id="close-sidebar-btn" class="flex h-10 w-10 items-center justify-center rounded-lg text-espresso-400 hover:bg-espresso-800 hover:text-white lg:hidden">
-                <span class="material-icons-round">close</span>
-            </button>
-        </div>
-
-        <nav class="flex-1 space-y-1 px-4 py-6 overflow-y-auto scrollbar-thin">
-            <div>
-                <span class="px-3 text-xxs font-bold text-espresso-400 uppercase tracking-widest block mb-2">Workspace</span>
-                <ul class="space-y-1">
-                    <li>
-                        <a href="index.html" class="nav-item flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200">
-                            <span class="material-icons-round text-xl">dashboard</span>
-                            <span>Dashboard</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="orders.html" class="nav-item active flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200">
-                            <span class="material-icons-round text-xl">receipt_long</span>
-                            <span>Live Orders</span>
-                            <span id="sidebar-orders-badge" class="ml-auto bg-bakery-505 text-espresso-950 text-xs px-2 py-0.5 rounded-full font-bold bg-bakery-500">12</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="products.html" class="nav-item flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200">
-                            <span class="material-icons-round text-xl">cake</span>
-                            <span>Bake Catalog</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="analytics.html" class="nav-item flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200">
-                            <span class="material-icons-round text-xl">query_stats</span>
-                            <span>Analytics</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="pt-6">
-                <span class="px-3 text-xxs font-bold text-espresso-400 uppercase tracking-widest block mb-2">Operations</span>
-                <ul class="space-y-1">
-                    <li>
-                        <a href="ovens.html" class="nav-item flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200">
-                            <span class="material-icons-round text-xl">soup_kitchen</span>
-                            <span>Ovens & Baking</span>
-                            <span class="ml-auto text-amber-400 text-xs font-semibold flex items-center gap-0.5">
-                                <span class="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span> 3 Active
-                            </span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="inventory.html" class="nav-item flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200">
-                            <span class="material-icons-round text-xl">inventory_2</span>
-                            <span>Inventory</span>
-                            <span class="ml-auto bg-rose-500/20 text-rose-300 text-xxs px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Stock Warning</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
-            <div class="pt-6">
-                <span class="px-3 text-xxs font-bold text-espresso-400 uppercase tracking-widest block mb-2">Administration</span>
-                <ul class="space-y-1">
-                    <li>
-                        <a href="settings.html" class="nav-item flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200">
-                            <span class="material-icons-round text-xl">settings</span>
-                            <span>Settings</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
-
-        <div class="p-4 border-t border-espresso-800 bg-espresso-950/30">
-            <div class="flex items-center gap-3">
-                <div class="relative">
-                    <img src="https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=100&auto=format&fit=crop&q=80" alt="Chef Avatar" class="h-11 w-11 rounded-xl object-cover ring-2 ring-bakery-500/30">
-                    <span class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-espresso-900"></span>
-                </div>
-                <div class="flex-1 overflow-hidden">
-                    <h4 class="text-sm font-semibold text-white truncate">Jean-Luc Boulanger</h4>
-                    <span class="text-xs text-bakery-400 truncate block">Master Baker Chef</span>
-                </div>
-                <button onclick="handleLogout()" class="text-espresso-400 hover:text-white transition-colors duration-150" title="Logout">
-                    <span class="material-icons-round">logout</span>
-                </button>
-            </div>
-        </div>
-    </aside>
+    <?php include 'sidebar.php'; ?>
 
     <!-- MAIN APP WRAPPER -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
@@ -266,7 +185,7 @@
                     <!-- Quick stats / Add Order -->
                     <div class="flex items-center gap-3 ml-auto sm:ml-0">
                         <span class="text-xs font-bold text-espresso-500 uppercase bg-espresso-50 border border-[#EAE3D5] px-3 py-2 rounded-xl">
-                            Live Queue: <span id="orders-live-count">12</span> Active
+                            Live Queue: <span id="orders-live-count">0</span> Active
                         </span>
                         <button onclick="openNewOrderModal()" class="flex items-center gap-1.5 bg-bakery-500 text-espresso-950 px-4 py-2 rounded-xl text-sm font-bold shadow-m-flat hover:shadow-m-fab hover:bg-bakery-600 transition-all">
                             <span class="material-icons-round text-lg">add</span> Add Order
@@ -397,7 +316,7 @@
             </div>
 
             <div class="p-4 bg-[#FAF6F0] border-t border-[#EAE3D5] flex items-center justify-between gap-3">
-                <button onclick="closeOrderModal()" class="px-4 py-2 text-xs font-bold text-espresso-600 hover:text-espresso-900">
+                <button onclick="closeOrderModal()" class="px-4 py-2 text-xs font-bold text-espresso-600 hover:text-espresso-950">
                     Close Panel
                 </button>
                 <div class="flex items-center gap-2">
@@ -434,27 +353,15 @@
                 <div class="space-y-1">
                     <label class="text-xs font-bold text-espresso-600 uppercase tracking-wider block">Select Items & Quantities</label>
                     <div class="border border-[#EAE3D5] rounded-xl p-3 max-h-36 overflow-y-auto space-y-2 bg-espresso-50 scrollbar-thin">
+                        <?php foreach ($products as $p): ?>
                         <label class="flex items-center justify-between text-xs font-semibold text-espresso-800">
                             <span class="flex items-center gap-2">
-                                <input type="checkbox" name="o-items" value="Butter Croissant|150.00" class="rounded border-[#EAE3D5] text-bakery-600 focus:ring-bakery-400">
-                                Butter Croissant (₹150.00)
+                                <input type="checkbox" name="o-items" value="<?php echo htmlspecialchars($p['name'] . '|' . $p['price']); ?>" class="rounded border-[#EAE3D5] text-bakery-600 focus:ring-bakery-400">
+                                <?php echo htmlspecialchars($p['name']); ?> (₹<?php echo number_format($p['price'], 2); ?>)
                             </span>
                             <input type="number" min="1" max="20" value="1" class="w-12 px-1 py-0.5 border border-[#EAE3D5] rounded text-center">
                         </label>
-                        <label class="flex items-center justify-between text-xs font-semibold text-espresso-800">
-                            <span class="flex items-center gap-2">
-                                <input type="checkbox" name="o-items" value="Artisan Sourdough|320.00" class="rounded border-[#EAE3D5] text-bakery-600 focus:ring-bakery-400">
-                                Artisan Sourdough (₹320.00)
-                            </span>
-                            <input type="number" min="1" max="20" value="1" class="w-12 px-1 py-0.5 border border-[#EAE3D5] rounded text-center">
-                        </label>
-                        <label class="flex items-center justify-between text-xs font-semibold text-espresso-800">
-                            <span class="flex items-center gap-2">
-                                <input type="checkbox" name="o-items" value="Chocolate Truffle Gateau|1200.00" class="rounded border-[#EAE3D5] text-bakery-600 focus:ring-bakery-400">
-                                Chocolate Truffle Gateau (₹1200.00)
-                            </span>
-                            <input type="number" min="1" max="20" value="1" class="w-12 px-1 py-0.5 border border-[#EAE3D5] rounded text-center">
-                        </label>
+                        <?php endforeach; ?>
                     </div>
                 </div>
 
@@ -495,6 +402,10 @@
         <span class="text-sm font-bold" id="toast-message">Success! Order completed.</span>
     </div>
 
+    <script>
+        var productsData = <?php echo json_encode($products); ?>;
+        var ordersData = <?php echo json_encode($orders); ?>;
+    </script>
     <!-- MAIN APP JS -->
     <script src="js/app.js"></script>
 </body>

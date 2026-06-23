@@ -1,3 +1,37 @@
+<?php
+session_start();
+require_once 'config.php';
+
+// Redirect if already logged in
+if (isset($_SESSION['bakery_logged_in']) && $_SESSION['bakery_logged_in'] === true) {
+    header("Location: index.php");
+    exit;
+}
+
+$errorMsg = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $user = $_POST['username'] ?? '';
+    $pass = $_POST['password'] ?? '';
+
+    // Verify against DB
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
+    $stmt->execute([$user]);
+    $dbUser = $stmt->fetch();
+
+    if ($dbUser && password_verify($pass, $dbUser['password'])) {
+        $_SESSION['bakery_logged_in'] = true;
+        
+        // Sync sessionStorage if needed, then redirect
+        echo "<script>
+            sessionStorage.setItem('bakery_logged_in', 'true');
+            window.location.href = 'index.php';
+        </script>";
+        exit;
+    } else {
+        $errorMsg = 'Invalid username or password!';
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-[#FAF7F2]">
 <head>
@@ -86,12 +120,12 @@
         </div>
 
         <!-- Login Form -->
-        <form onsubmit="handleLogin(event)" class="space-y-4">
+        <form method="POST" action="login.php" class="space-y-4">
             <div class="space-y-1">
                 <label class="text-xs font-bold text-espresso-600 uppercase tracking-wider block">Username</label>
                 <div class="relative">
                     <span class="material-icons-round text-espresso-400 absolute left-3.5 top-3 text-lg">person</span>
-                    <input type="text" id="username" required value="admin" class="w-full pl-10 pr-4 py-2.5 text-sm bg-espresso-50 border border-[#EAE3D5] rounded-xl focus:outline-none focus:ring-2 focus:ring-bakery-400 font-medium">
+                    <input type="text" name="username" id="username" required value="admin" class="w-full pl-10 pr-4 py-2.5 text-sm bg-espresso-50 border border-[#EAE3D5] rounded-xl focus:outline-none focus:ring-2 focus:ring-bakery-400 font-medium">
                 </div>
             </div>
 
@@ -99,7 +133,7 @@
                 <label class="text-xs font-bold text-espresso-600 uppercase tracking-wider block">Password</label>
                 <div class="relative">
                     <span class="material-icons-round text-espresso-400 absolute left-3.5 top-3 text-lg">lock</span>
-                    <input type="password" id="password" required value="12345678" class="w-full pl-10 pr-4 py-2.5 text-sm bg-espresso-50 border border-[#EAE3D5] rounded-xl focus:outline-none focus:ring-2 focus:ring-bakery-400 font-medium">
+                    <input type="password" name="password" id="password" required value="12345678" class="w-full pl-10 pr-4 py-2.5 text-sm bg-espresso-50 border border-[#EAE3D5] rounded-xl focus:outline-none focus:ring-2 focus:ring-bakery-400 font-medium">
                 </div>
             </div>
 
@@ -124,23 +158,12 @@
     </div>
 
     <script>
-        // Redirect if already logged in
-        if (sessionStorage.getItem("bakery_logged_in") === "true") {
-            window.location.href = "index.html";
-        }
+        // Sync sessionStorage if needed
+        sessionStorage.removeItem('bakery_logged_in');
 
-        function handleLogin(event) {
-            event.preventDefault();
-            const user = document.getElementById("username").value;
-            const pass = document.getElementById("password").value;
-
-            if (user === "admin" && pass === "12345678") {
-                sessionStorage.setItem("bakery_logged_in", "true");
-                window.location.href = "index.html";
-            } else {
-                showToast("Invalid username or password!", "error");
-            }
-        }
+        <?php if (!empty($errorMsg)): ?>
+        showToast(<?php echo json_encode($errorMsg); ?>);
+        <?php endif; ?>
 
         function showToast(message) {
             const toast = document.getElementById("login-toast");
