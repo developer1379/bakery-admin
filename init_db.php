@@ -18,7 +18,8 @@ try {
     $pdo->exec("CREATE TABLE users (
         id INT AUTO_INCREMENT PRIMARY KEY,
         username VARCHAR(50) NOT NULL UNIQUE,
-        password VARCHAR(255) NOT NULL
+        password VARCHAR(255) NOT NULL,
+        session_token VARCHAR(255) DEFAULT NULL
     )");
 
     // Insert admin/12345678 (using plaintext as requested in prompt, or password_hash if preferred, but we will store it securely or handle direct match. Let's use plaintext for simplicity of 'admin, 12345678' direct check or password_hash. Let's use password_hash and we will verify in PHP)

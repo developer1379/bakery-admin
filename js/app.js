@@ -357,7 +357,7 @@ function renderProductsGrid(filterText = "", filterCategory = "All Items") {
                 <div class="mt-4 pt-4 border-t border-[#FAF6F0] flex items-center justify-between">
                     <div>
                         <span class="text-xxs text-espresso-400 font-bold block uppercase tracking-wider">Price</span>
-                        <span class="text-lg font-bold text-espresso-950">₹${p.price.toFixed(2)}</span>
+                        <span class="text-lg font-bold text-espresso-950">₹${parseFloat(p.price).toFixed(2)}</span>
                     </div>
                     <div>
                         <span class="text-xxs text-espresso-400 font-bold block text-right uppercase tracking-wider">Daily Stock</span>
@@ -488,7 +488,7 @@ function renderOrdersBoard(filterText = "") {
         };
 
         const itemSum = o.items.map(item => `${item.qty}x ${item.name}`).join(", ");
-        const totalVal = o.items.reduce((acc, item) => acc + (item.price * item.qty), 0);
+        const totalVal = o.items.reduce((acc, item) => acc + (parseFloat(item.price) * parseInt(item.qty)), 0);
 
         const card = document.createElement("div");
         card.className = "bg-white border rounded-xl p-4 hover:shadow-m-elevated transition-all cursor-pointer relative";
@@ -568,7 +568,7 @@ function openOrderModal(orderId) {
     
     let subtotal = 0;
     order.items.forEach(item => {
-        const itemCost = item.price * item.qty;
+        const itemCost = parseFloat(item.price) * parseInt(item.qty);
         subtotal += itemCost;
         
         const row = document.createElement("tr");
@@ -732,7 +732,7 @@ function renderDashboardRecentOrders() {
 
     recentOrders.forEach(o => {
         const itemSum = o.items.map(item => `${item.qty}x ${item.name}`).join(", ");
-        const totalVal = o.items.reduce((acc, item) => acc + (item.price * item.qty), 0);
+        const totalVal = o.items.reduce((acc, item) => acc + (parseFloat(item.price) * parseInt(item.qty)), 0);
 
         const statusClasses = {
             pending: "text-rose-700 bg-rose-50 border-rose-200",

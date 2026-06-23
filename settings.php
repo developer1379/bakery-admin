@@ -1,10 +1,5 @@
 <?php
-session_start();
-if (!isset($_SESSION['bakery_logged_in']) || $_SESSION['bakery_logged_in'] !== true) {
-    header("Location: login.php");
-    exit;
-}
-require_once 'config.php';
+require_once 'auth_check.php';
 ?>
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-[#FAF7F2]">

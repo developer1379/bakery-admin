@@ -1,11 +1,16 @@
 <?php
-session_start();
 require_once 'config.php';
 
-// Redirect if already logged in
-if (isset($_SESSION['bakery_logged_in']) && $_SESSION['bakery_logged_in'] === true) {
-    header("Location: index.php");
-    exit;
+// Redirect if already logged in via token
+if (isset($_COOKIE['bakery_session_token']) && !empty($_COOKIE['bakery_session_token'])) {
+    $token = $_COOKIE['bakery_session_token'];
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE session_token = ?");
+    $stmt->execute([$token]);
+    $user = $stmt->fetch();
+    if ($user) {
+        header("Location: index.php");
+        exit;
+    }
 }
 
 $errorMsg = '';
@@ -19,7 +24,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $dbUser = $stmt->fetch();
 
     if ($dbUser && password_verify($pass, $dbUser['password'])) {
-        $_SESSION['bakery_logged_in'] = true;
+        // Generate stateless session token
+        $sessionToken = bin2hex(random_bytes(16));
+        
+        // Save to DB
+        $upStmt = $pdo->prepare("UPDATE users SET session_token = ? WHERE id = ?");
+        $upStmt->execute([$sessionToken, $dbUser['id']]);
+        
+        // Set cookie valid for 30 days
+        setcookie('bakery_session_token', $sessionToken, time() + 86400 * 30, '/');
+        
         header("Location: index.php");
         exit;
     } else {

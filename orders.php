@@ -1,10 +1,5 @@
 <?php
-session_start();
-if (!isset($_SESSION['bakery_logged_in']) || $_SESSION['bakery_logged_in'] !== true) {
-    header("Location: login.php");
-    exit;
-}
-require_once 'config.php';
+require_once 'auth_check.php';
 
 // Fetch products for order modal selection
 $pStmt = $pdo->query("SELECT id, name, category, price, description as `desc`, status, stock, limit_val as `limit`, image_url as img FROM products ORDER BY id DESC");

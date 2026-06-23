@@ -1,14 +1,17 @@
 <?php
-session_start();
-$_SESSION = array();
-if (ini_get("session.use_cookies")) {
-    $params = session_get_cookie_params();
-    setcookie(session_name(), '', time() - 42000,
-        $params["path"], $params["domain"],
-        $params["secure"], $params["httponly"]
-    );
+require_once 'config.php';
+
+if (isset($_COOKIE['bakery_session_token'])) {
+    $token = $_COOKIE['bakery_session_token'];
+    
+    // Clear token in database
+    $stmt = $pdo->prepare("UPDATE users SET session_token = NULL WHERE session_token = ?");
+    $stmt->execute([$token]);
+    
+    // Expire the cookie
+    setcookie('bakery_session_token', '', time() - 3600, '/');
 }
-session_destroy();
+
 header("Location: login.php");
 exit;
 ?>

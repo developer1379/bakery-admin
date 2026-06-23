@@ -1,10 +1,5 @@
 <?php
-session_start();
-if (!isset($_SESSION['bakery_logged_in']) || $_SESSION['bakery_logged_in'] !== true) {
-    header("Location: login.php");
-    exit;
-}
-require_once 'config.php';
+require_once 'auth_check.php';
 
 // Fetch inventory items
 $invStmt = $pdo->query("SELECT name, category, stock, max_stock, limit_threshold, unit_cost, supplier FROM inventory ORDER BY name ASC");

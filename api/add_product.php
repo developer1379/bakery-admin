@@ -1,12 +1,21 @@
 <?php
-session_start();
-if (!isset($_SESSION['bakery_logged_in']) || $_SESSION['bakery_logged_in'] !== true) {
+require_once '../config.php';
+
+$authenticated = false;
+if (isset($_COOKIE['bakery_session_token']) && !empty($_COOKIE['bakery_session_token'])) {
+    $token = $_COOKIE['bakery_session_token'];
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE session_token = ?");
+    $stmt->execute([$token]);
+    if ($stmt->fetch()) {
+        $authenticated = true;
+    }
+}
+
+if (!$authenticated) {
     http_response_code(401);
     echo json_encode(['error' => 'Unauthorized']);
     exit;
 }
-
-require_once '../config.php';
 
 $data = json_decode(file_get_contents('php://input'), true);
 if (!$data || !isset($data['name']) || !isset($data['category']) || !isset($data['price']) || !isset($data['stock']) || !isset($data['status'])) {
